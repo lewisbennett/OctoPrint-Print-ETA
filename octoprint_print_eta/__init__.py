@@ -22,9 +22,6 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         global previous_eta_string
         previous_eta_string = ""
 
-        global CustomTimeFormat
-        CustomTimeFormat = "HH:mm:ss"
-
     # Defines the static assets the plugin offers.
     def get_assets(self):
 
@@ -72,8 +69,21 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         self._logger.debug("on_event called.")
 
-        if event in ["PrintStarted", "PrintResumed"]:
-            self.refresh_eta()
+        # Update settings.
+        global remove_colons
+        remove_colons = self._settings.get(["remove_colons"])
+
+        global show_eta_on_printer
+        show_eta_on_printer = self._settings.get(["show_eta_on_printer"])
+
+        global use_fancy_text
+        use_fancy_text = self._settings.get(["use_fancy_text"])
+
+        global use_twenty_four_hour_view
+        use_twenty_four_hour_view = self._settings.get(["use_twenty_four_hour_view"])
+
+        # Refresh the ETA.
+        self.refresh_eta()
 
     # Called by OctoPrint on minimally 1% increments during a running print job.
     # storage (string) - Location of the file
@@ -90,46 +100,50 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         self._logger.debug("calculate_eta called.")
 
+        # Get the printer's current data, and validate that it's in a state where we can calculate the ETA.
         current_data = self._printer.get_current_data()
 
         if "progress" not in current_data:
-            return "N/A"
+            return "-"
 
         progress_data = current_data["progress"]
 
         if "printTimeLeft" not in progress_data:
-            return "N/A"
+            return "-"
         
         print_time_left = progress_data["printTimeLeft"]
 
         # If the print hasn't begun yet, "printTimeLeft" won't have a type.
         if type(print_time_left) != int:
-            return "N/A"
+            return "-"
+
+        # We have all the information we need to calculate the ETA by this point.
+
+        global use_fancy_text
+        global use_twenty_four_hour_view
 
         current_time = datetime.datetime.today()
 
         print_finish_time = current_time + datetime.timedelta(0, print_time_left)
 
-        str_time = format_time(print_finish_time, CustomTimeFormat)
+        eta_string = ""
 
-        self._logger.debug("str_time: " + str_time)
+        if use_twenty_four_hour_view:
+            eta_string = format_time(print_finish_time, "HH:mm:ss")
 
-        str_date = ""
+        else:
+            eta_string = format_time(print_finish_time, "hh:mm:ss a")
 
-        if print_finish_time.day > current_time.day:
+        # Append the ETA string with the date, if the print is not due to finish today.
+        if (print_finish_time.day > current_time.day):
 
-            if print_finish_time.day == current_time.day + 1:
-                str_date = "Tomorrow"
+            if print_finish_time.day == current_time.day + 1 and use_fancy_text:
+                eta_string += " tomorrow"
 
             else:
-                str_time = " " + format_date(print_finish_time, "EEE d")
+                eta_string += format_date(print_finish_time, "EEE d")
 
-        self._logger.debug("str_date: " + str_date)
-        self._logger.debug(str_time + str_date)
-
-        return str_time + str_date
-
-     # Refreshes the ETA on the UI, if required.
+        return eta_string
     
     # Refreshes the ETA on the UI, if required.
     def refresh_eta(self):
@@ -138,7 +152,11 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         self.eta_string = self.calculate_eta()
 
+        self._logger.debug("ETA string: " + self.eta_string)
+
         global previous_eta_string
+        global remove_colons
+        global show_eta_on_printer
 
         # Compare the new and previous ETA string before pushing any updates to the UI or printer.
         if (self.eta_string != previous_eta_string):
@@ -147,6 +165,16 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
             # Notify listeners of new ETA string value.
             self._plugin_manager.send_plugin_message(self._identifier, dict(eta_string = self.eta_string))
+
+            # Send M117 command to printer, if setting is enabled.
+            if show_eta_on_printer:
+
+                # Remove colons, if setting is enabled.
+                if remove_colons:
+                    self._printer.commands("M117 ETA: {}".format(self.eta_string.replace(":", "")))
+
+                else:
+                    self._printer.commands("M117 ETA: {}".format(self.eta_string))
 
 __plugin_name__ = "Print ETA"
 __plugin_pythoncompat__ = ">=2.7,<4"
