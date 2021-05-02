@@ -1,2 +1,17 @@
 # OctoPrint-Print-ETA
-An OctoPrint plugin that shows you the time that a print job is estimated to finish.
+
+**TODO:** Describe what your plugin does.
+
+## Setup
+
+Install via the bundled [Plugin Manager](https://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
+or manually using this URL:
+
+    https://github.com/you/OctoPrint-Helloworld/archive/master.zip
+
+**TODO:** Describe how to install your plugin, if more needs to be done than just installing it via pip or through
+the plugin manager.
+
+## Configuration
+
+**TODO:** Describe your plugin's configuration options (if any).
