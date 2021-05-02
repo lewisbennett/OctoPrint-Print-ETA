@@ -6,7 +6,12 @@ import octoprint.plugin
 import time
 import datetime
 
-class PrintETAPlugin(octoprint.plugin.AssetPlugin, octoprint.plugin.EventHandlerPlugin, octoprint.plugin.ProgressPlugin, octoprint.plugin.SettingsPlugin, octoprint.plugin.StartupPlugin):
+class PrintETAPlugin(octoprint.plugin.AssetPlugin,
+    octoprint.plugin.EventHandlerPlugin,
+    octoprint.plugin.ProgressPlugin,
+    octoprint.plugin.SettingsPlugin,
+    octoprint.plugin.StartupPlugin,
+    octoprint.plugin.TemplatePlugin):
 
     # Initialize the plugin.
     def __init__(self):
@@ -36,9 +41,25 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin, octoprint.plugin.EventHandler
 
         return dict(
 
-            # Controls whether to show time in 24 hour view (13:00), or 12 hour view (1:00 PM).
-            use_twenty_four_hour = True
+            # Whether to remove colons from ETA strings (required for some printer firmwares).
+            remove_colons = False,
+
+            # Whether to send the ETA to the printer via an M117 command.
+            show_eta_on_printer = True,
+
+            # Whether to use "fancy" text (e.g. Tomorrow).
+            use_fancy_text = True,
+
+            # Whether to show time in 24 hour view (13:00), or 12 hour view (1:00 PM).
+            use_twenty_four_hour_view = True
         )
+
+    # Allows configuration of injected navbar, sidebar, tab and settings templates.
+    def get_template_configs(self):
+        return [
+            dict(type="navbar", custom_bindings=False),
+            dict(type="settings", custom_bindings=False)
+        ]
 
     # Called just after launch of the server, so when the listen loop is actually running already.
     def on_after_startup(self):
