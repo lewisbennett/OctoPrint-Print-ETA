@@ -7,7 +7,9 @@ An OctoPrint plugin that shows you the time that a print job is estimated to fin
 Install via the bundled [Plugin Manager](https://docs.octoprint.org/en/master/bundledplugins/pluginmanager.html)
 or manually using this URL:
 
-    https://github.com/you/OctoPrint-Helloworld/archive/master.zip
+```
+https://github.com/lewisbennett/OctoPrint-Print-ETA/archive/0.1.0.zip
+```
 
 ## Configuration
 
