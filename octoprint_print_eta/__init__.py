@@ -13,6 +13,10 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin, octoprint.plugin.EventHandler
 
         self.eta_string = "-"
 
+        # Used to compare ETA strings before pushing them to the UI, or the printer.
+        global previous_eta_string
+        previous_eta_string = ""
+
         global CustomTimeFormat
         CustomTimeFormat = "HH:mm:ss"
 
@@ -113,7 +117,15 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin, octoprint.plugin.EventHandler
 
         self.eta_string = self.calculate_eta()
 
-        self._plugin_manager.send_plugin_message(self._identifier, dict(eta_string = self.eta_string))
+        global previous_eta_string
+
+        # Compare the new and previous ETA string before pushing any updates to the UI or printer.
+        if (self.eta_string != previous_eta_string):
+
+            previous_eta_string = self.eta_string
+
+            # Notify listeners of new ETA string value.
+            self._plugin_manager.send_plugin_message(self._identifier, dict(eta_string = self.eta_string))
 
 __plugin_name__ = "Print ETA"
 __plugin_pythoncompat__ = ">=2.7,<4"
