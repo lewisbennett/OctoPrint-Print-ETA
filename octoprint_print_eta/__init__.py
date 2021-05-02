@@ -11,8 +11,6 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin, octoprint.plugin.EventHandler
     # Initialize the plugin.
     def __init__(self):
 
-        #self._logger.info("__init__ called.")
-
         self.eta_string = "-"
 
         global CustomTimeFormat
@@ -21,7 +19,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin, octoprint.plugin.EventHandler
     # Defines the static assets the plugin offers.
     def get_assets(self):
 
-        self._logger.info("get_assets called.")
+        self._logger.debug("get_assets called.")
 
         return dict(
             js = ["js/print_eta.js"]
@@ -30,7 +28,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin, octoprint.plugin.EventHandler
     # Retrieves the plugin’s default settings with which the plugin’s settings manager will be initialized.
     def get_settings_defaults(self):
 
-        self._logger.info("get_settings_defaults called.")
+        self._logger.debug("get_settings_defaults called.")
 
         return dict(
 
@@ -40,15 +38,14 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin, octoprint.plugin.EventHandler
 
     # Called just after launch of the server, so when the listen loop is actually running already.
     def on_after_startup(self):
-
-        self._logger.info("on_after_startup called.")
+        self._logger.debug("on_after_startup called.")
 
     # Called by OctoPrint upon processing of a fired event on the platform.
     # event (string) - The type of event that got fired, see the list of events for possible values: https://docs.octoprint.org/en/master/events/index.html#sec-events-available-events
     # payload (dictionary) - The payload as provided with the event
     def on_event(self, event, payload):
 
-        self._logger.info("on_event called.")
+        self._logger.debug("on_event called.")
 
         if event in ["PrintStarted", "PrintResumed"]:
             self.refresh_eta()
@@ -59,22 +56,14 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin, octoprint.plugin.EventHandler
     # progress (int) - Current progress as a value between 0 and 100
     def on_print_progress(self, storage, path, progress):
 
-        self._logger.info("on_print_progress called.")
+        self._logger.debug("on_print_progress called.")
 
         self.refresh_eta()
-
-    def refresh_eta(self):
-
-        self._logger.info("refresh_eta called.")
-
-        self.eta_string = self.calculate_eta()
-
-        self._plugin_manager.send_plugin_message(self._identifier, dict(eta_string = self.eta_string))
 
     # Calculates the current print's ETA.
     def calculate_eta(self):
 
-        self._logger.info("calculate_eta called.")
+        self._logger.debug("calculate_eta called.")
 
         current_data = self._printer.get_current_data()
 
@@ -98,7 +87,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin, octoprint.plugin.EventHandler
 
         str_time = format_time(print_finish_time, CustomTimeFormat)
 
-        self._logger.info("str_time: " + str_time)
+        self._logger.debug("str_time: " + str_time)
 
         str_date = ""
 
@@ -110,10 +99,21 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin, octoprint.plugin.EventHandler
             else:
                 str_time = " " + format_date(print_finish_time, "EEE d")
 
-        self._logger.info("str_date: " + str_date)
-        self._logger.info(str_time + str_date)
+        self._logger.debug("str_date: " + str_date)
+        self._logger.debug(str_time + str_date)
 
         return str_time + str_date
+
+     # Refreshes the ETA on the UI, if required.
+    
+    # Refreshes the ETA on the UI, if required.
+    def refresh_eta(self):
+
+        self._logger.debug("refresh_eta called.")
+
+        self.eta_string = self.calculate_eta()
+
+        self._plugin_manager.send_plugin_message(self._identifier, dict(eta_string = self.eta_string))
 
 __plugin_name__ = "Print ETA"
 __plugin_pythoncompat__ = ">=2.7,<4"
