@@ -58,6 +58,20 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             dict(type="settings", custom_bindings=False)
         ]
 
+    # Gets the latest plugin version information.
+    def get_update_information(self):
+        return dict(
+            display_eta=dict(
+                displayName=self._plugin_name,
+                displayVersion=self._plugin_version,
+                type="github_release",
+                current=self._plugin_version,
+                user="lewisbennett",
+                repo="Octoprint-Print-ETA",
+                pip="https://github.com/lewisbennett/Octoprint-Print-ETA/archive/{target}.zip"
+            )
+        )
+
     # Called just after launch of the server, so when the listen loop is actually running already.
     def on_after_startup(self):
         self._logger.debug("on_after_startup called.")
@@ -179,3 +193,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 __plugin_name__ = "Print ETA"
 __plugin_pythoncompat__ = ">=2.7,<4"
 __plugin_implementation__ = PrintETAPlugin()
+
+__plugin_hooks__ = {
+    "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
+}
