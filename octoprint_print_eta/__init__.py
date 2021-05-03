@@ -61,7 +61,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
     # Gets the latest plugin version information.
     def get_update_information(self):
         return dict(
-            display_eta=dict(
+            print_eta=dict(
                 displayName=self._plugin_name,
                 displayVersion=self._plugin_version,
                 type="github_release",
