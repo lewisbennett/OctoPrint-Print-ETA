@@ -8,7 +8,7 @@ Install via the bundled [Plugin Manager](https://docs.octoprint.org/en/master/bu
 or manually using this URL:
 
 ```
-https://github.com/lewisbennett/OctoPrint-Print-ETA/archive/0.1.0.zip
+https://github.com/lewisbennett/OctoPrint-Print-ETA/archive/master.zip
 ```
 
 ## Configuration
