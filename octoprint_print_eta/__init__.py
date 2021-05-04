@@ -83,6 +83,14 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         self._logger.debug("on_event called.")
 
+        self._logger.info(event)
+
+        # Only recalculate the ETA if the event is a print related event.
+        # ClientOpened - event when OctoPrint starts being viewed (allows us to calculate the ETA quickly after refreshing OctoPrint, or opening from another device mid-print).
+        # Print* - react to all print related events.
+        if event != "ClientOpened" and not event.startswith("Print"):
+            return;
+
         # Update settings.
         global remove_colons
         remove_colons = self._settings.get(["remove_colons"])
