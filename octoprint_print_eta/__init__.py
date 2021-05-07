@@ -83,12 +83,11 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         self._logger.debug("on_event called.")
 
-        self._logger.info(event)
-
         # Only recalculate the ETA if the event is a print related event.
         # ClientOpened - event when OctoPrint starts being viewed (allows us to calculate the ETA quickly after refreshing OctoPrint, or opening from another device mid-print).
+        # FileRemoved - event when a file is remove from OctoPrint's storage (allows the ETA to be cleared if the active print file is removed).
         # Print* - react to all print related events.
-        if event != "ClientOpened" and not event.startswith("Print"):
+        if not event.startswith("Print") and event not in ["ClientOpened", "FileRemoved"]:
             return;
 
         # Update settings.
