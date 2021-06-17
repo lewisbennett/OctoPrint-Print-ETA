@@ -17,6 +17,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         self.eta_string = "-"
         self.printer_message = ""
+        self.timer = None
 
         # Used to compare ETA strings before pushing them to the UI.
         global previous_eta_string
@@ -37,7 +38,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
     # Defines the static assets the plugin offers.
     def get_assets(self):
 
-        self._logger.debug("get_assets called.")
+        self._logger.info("get_assets called.")
 
         return dict(
             js = ["js/print_eta.js"]
@@ -46,7 +47,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
     # Retrieves the plugin’s default settings with which the plugin’s settings manager will be initialized.
     def get_settings_defaults(self):
 
-        self._logger.debug("get_settings_defaults called.")
+        self._logger.info("get_settings_defaults called.")
 
         return dict(
 
@@ -105,7 +106,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
     # Called just after launch of the server, so when the listen loop is actually running already.
     def on_after_startup(self):
 
-        self._logger.debug("on_after_startup called.")
+        self._logger.info("on_after_startup called.")
 
         # Get settings.
         global remove_colons
@@ -140,7 +141,10 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         # Get the initial message mode.
         global message_mode
-        message_mode = self.get_next_message_mode()
+
+        # If the ETA message is disabled in the cycle, calculate the correct starting mode.
+        if not message_cycle_eta_message:
+            message_mode = self.get_next_message_mode()
 
         # Set up a timer for message cycling, if enabled.
         self.timer = RepeatedTimer(message_cycle_interval_minutes * 60, PrintETAPlugin.on_timer_elapsed, args=[self])
@@ -150,28 +154,25 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
     # payload (dictionary) - The payload as provided with the event
     def on_event(self, event, payload):
 
-        self._logger.debug("on_event called.")
+        self._logger.info("on_event called.")
 
-<<<<<<< Updated upstream
-        # Update settings.
-        global remove_colons
-        remove_colons = self._settings.get(["remove_colons"])
-=======
         # Only recalculate the ETA if the event is a print related event.
         # ClientOpened - event when OctoPrint starts being viewed (allows us to calculate the ETA quickly after refreshing OctoPrint, or opening from another device mid-print).
         # FileRemoved - event when a file is removed from OctoPrint's storage (allows the ETA to be cleared if the active print file is removed).
         # Print* - react to all print related events.
         if event.startswith("Print") or event in ["ClientOpened", "FileRemoved"]:
 
-            self.timer.cancel()
->>>>>>> Stashed changes
+            # Check that the timer has been set up before trying to interact with it.
+            # Depending on the event, the plugin might not have finished starting up yet.
+            if self.timer is not None:
+                self.timer.cancel()
 
-            if event in ["PrintStarted", "PrintResumed"]:
+                if event in ["PrintStarted", "PrintResumed"]:
 
-                global enable_message_cycling
+                    global enable_message_cycling
 
-                if enable_message_cycling:
-                    self.timer.start()
+                    if enable_message_cycling:
+                        self.timer.start()
 
             self.refresh_messages()
 
@@ -181,14 +182,14 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
     # progress (int) - Current progress as a value between 0 and 100
     def on_print_progress(self, storage, path, progress):
 
-        self._logger.debug("on_print_progress called.")
+        self._logger.info("on_print_progress called.")
 
         self.refresh_messages()
 
     # Calculates the required messages based on the printer's current state.
     def calculate_messages(self):
 
-        self._logger.debug("calculate_eta called.")
+        self._logger.info("calculate_messages called.")
 
         # Get the printer's current data, and validate that it's in a state where we can calculate the ETA.
         current_data = self._printer.get_current_data()
@@ -252,11 +253,11 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
                 print_time_elapsed = progress_data["printTime"]
 
                 if type(print_time_elapsed) == int:
-                    new_printer_message = self.get_time_string(datetime.timedelta(0, print_time_elapsed))
+                    new_printer_message = "Elapsed: " + self.get_time_string(datetime.timedelta(0, print_time_elapsed))
 
             # Time remaining message.
             elif message_mode == 2:
-                new_printer_message = self.get_time_string(print_time_remaining)
+                new_printer_message = "Remaining: " + self.get_time_string(print_time_remaining)
 
             # Progress percentage message.
             elif message_mode == 3:
@@ -274,7 +275,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
     # Gets the next message mode.
     def get_next_message_mode(self):
 
-        self._logger.debug("get_next_message_mode called.")
+        self._logger.info("get_next_message_mode called.")
 
         global message_cycle_eta_message
         global message_cycle_progress_percentage
@@ -312,7 +313,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
                 break
 
-        self._logger.debug("New message mode: " + str(new_message_mode))
+        self._logger.info("New message mode: " + str(new_message_mode))
 
         return new_message_mode
 
@@ -320,7 +321,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
     # datetime (timedelta) - The time delta to calculate the string for.
     def get_time_string(self, timedelta):
         
-        self._logger.debug("get_time_string called.")
+        self._logger.info("get_time_string called.")
 
         message = []
 
@@ -347,20 +348,20 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         minutes = (timedelta.seconds) // 60 % 60
 
         # Add minutes, if needed.
-        if timedelta.minutes > 0:
+        if minutes > 0:
 
-            if timedelta.minutes == 1:
+            if minutes == 1:
                 message.append("1 minute")
             
             else:
-                message.append("{} minutes".format(timedelta.minutes))
+                message.append("{} minutes".format(minutes))
 
         return ", ".join(message)
 
     # Event handler for timer to handle message mode switching.
     def on_timer_elapsed(self):
 
-        self._logger.debug("on_timer_elapsed called.")
+        self._logger.info("on_timer_elapsed called.")
 
         global enable_message_cycling
 
@@ -380,16 +381,16 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
     # Refreshes the messages being shown to the user.
     def refresh_messages(self):
 
-        self._logger.debug("refresh_eta called.")
+        self._logger.info("refresh_messages called.")
 
         self.calculate_messages()
 
-        self._logger.debug("ETA string: " + self.eta_string)
-        self._logger.debug("Printer message: " + self.printer_message)
+        self._logger.info("ETA string: " + self.eta_string)
+        self._logger.info("Printer message: " + self.printer_message)
 
         global previous_eta_string
 
-        # Compare the new and previous ETA string before pushing any updates to the UI or printer.
+        # Compare the new and previous ETA string before pushing any updates to the UI.
         if (self.eta_string != previous_eta_string):
 
             previous_eta_string = self.eta_string
