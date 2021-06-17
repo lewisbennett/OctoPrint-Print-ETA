@@ -14,4 +14,27 @@
     <label class="checkbox">
         <input type="checkbox" data-bind="checked: settings.plugins.print_eta.remove_colons">{{ _('Remove colons (:) from the ETA (required for some printer firmwares).') }}
     </label>
+
+    <h3>{{ _('Message Cycling') }}</h3>
+    <label class="checkbox">
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.enable_message_cycling">{{ _('Enable message cycling (printer\'s screen only, if enabled).') }}
+    </label>
+    <label class="checkbox">
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.message_cycle_eta_message">{{ _('Include ETA message in message cycle (e.g. ETA: 13:37 tomorrow).') }}
+    </label>
+    <label class="checkbox">
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.message_cycle_time_elapsed_message">{{ _('Include time elapsed message in message cycle (e.g. Time elapsed: 2 hours, 15 minutes).') }}
+    </label>
+    <label class="checkbox">
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.message_cycle_time_remaining_message">{{ _('Include time remaining message in message cycle (e.g. Time remaining: 13 hours, 37 minutes).') }}
+    </label>
+    <label class="checkbox">
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.message_cycle_progress_percentage">{{ _('Include the progress percentage message in message cycle (e.g. 42 complete).') }}
+    </label>
+    <div class="control-group" title="Message cycle interval">
+        <label class="control-label">Message cycle interval</label>
+        <div class="controls">
+            <input type="number" min="1" max="10" step="1" data-bind="value: settings.plugins.print_eta.message_cycle_interval_minutes">
+        </div>
+    </div>
 </form>
