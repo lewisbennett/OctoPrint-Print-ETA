@@ -274,6 +274,9 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
                 completion = progress_data["completion"]
 
                 if type(completion) == float:
+
+                    self.logger.debug("Print completion: " + str(completion))
+
                     new_printer_message = str(int(completion)) + "% complete"
 
             self.printer_message = new_printer_message
@@ -359,7 +362,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             else:
                 message.append("{} hours".format(hours))
 
-        minutes = (timedelta.seconds) // 60 % 60
+        minutes = (timedelta.seconds // 60) % 60
 
         # Add minutes, if needed.
         if minutes > 0:
@@ -382,15 +385,11 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # Make sure that message cycling is enabled before moving to the next mode.
         if enable_message_cycling:
 
-            new_message_mode = self.get_next_message_mode()
-
             global message_mode
 
-            if new_message_mode != message_mode:
+            message_mode = self.get_next_message_mode()
 
-                message_mode = new_message_mode
-
-                self.refresh_messages()
+            self.refresh_messages()
 
     # Refreshes the messages being shown to the user.
     def refresh_messages(self):
