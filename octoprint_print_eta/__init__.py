@@ -344,34 +344,24 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         # Add days, if needed.
         if timedelta.days > 0:
-
-            if timedelta.days == 1:
-                message.append("1 day")
-            
-            else:
-                message.append("{} days".format(timedelta.days))
+            message.append("{}d".format(timedelta.days))
 
         hours = timedelta.seconds // 3600
 
         # Add hours, if needed.
         if hours > 0:
-
-            if hours == 1:
-                message.append("1 hour")
-            
-            else:
-                message.append("{} hours".format(hours))
+            message.append("{}h".format(hours))
 
         minutes = (timedelta.seconds // 60) % 60
 
         # Add minutes, if needed.
         if minutes > 0:
+            message.append("{}m".format(minutes))
 
-            if minutes == 1:
-                message.append("1 minute")
-            
-            else:
-                message.append("{} minutes".format(minutes))
+        seconds = (timedelta.seconds // 3600) % 60
+
+        if seconds > 0:
+            message.append("{}s".format(seconds))
 
         return ", ".join(message)
 
