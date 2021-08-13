@@ -178,10 +178,14 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
                 self.is_timer_active = False
 
             # If not a timer cancelling event, check if the timer should be started instead.
-            elif enable_message_cycling and not self.is_timer_active:
+            else:
 
-                self.timer.start()
-                self.is_timer_active = True
+                global enable_message_cycling
+
+                if enable_message_cycling and not self.is_timer_active:
+
+                    self.timer.start()
+                    self.is_timer_active = True
 
         # Only allow these non-print based events to trigger a refresh of the messages.
         elif event not in ["ClientOpened", "FileRemoved"]:
