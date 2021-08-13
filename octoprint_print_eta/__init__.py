@@ -21,6 +21,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         self.eta_string = "-"
         self.printer_message = ""
         self.has_started_up = False
+        self.is_timer_active = False
 
         # Used to compare ETA strings before pushing them to the UI.
         global previous_eta_string
@@ -168,21 +169,25 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # ClientOpened - event when OctoPrint starts being viewed (allows us to calculate the ETA quickly after refreshing OctoPrint, or opening from another device mid-print).
         # FileRemoved - event when a file is removed from OctoPrint's storage (allows the ETA to be cleared if the active print file is removed).
         # Print* - react to all print related events.
-        if event.startswith("Print") or event in ["ClientOpened", "FileRemoved"]:
-
-            # Events to start the timer.
-            if event in ["PrintStarted", "PrintResumed"]:
-
-                global enable_message_cycling
-
-                if enable_message_cycling:
-                    self.timer.start()
+        if event.startswith("Print"):
 
             # Events to cancel the timer.
-            elif event in ["PrintDone", "PrintCancelled", "PrintFailed", "PrintPaused"]:
-                self.timer.cancel()
+            if event in ["PrintDone", "PrintCancelled", "PrintFailed", "PrintPaused"]:
 
-            self.refresh_messages()
+                self.timer.cancel()
+                self.is_timer_active = False
+
+            # If not a timer cancelling event, check if the timer should be started instead.
+            elif enable_message_cycling and not self.is_timer_active:
+
+                self.timer.start()
+                self.is_timer_active = True
+
+        # Only allow these non-print based events to trigger a refresh of the messages.
+        elif event not in ["ClientOpened", "FileRemoved"]:
+            return
+
+        self.refresh_messages()
 
     # Called by OctoPrint on minimally 1% increments during a running print job.
     # storage (string) - Location of the file
@@ -203,19 +208,33 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # Get the printer's current data, and validate that it's in a state where we can calculate the ETA.
         current_data = self._printer.get_current_data()
 
+        # Can't proceed without progress data.
         if "progress" not in current_data:
-            return "-"
+
+            self.eta_string = "-"
+            self.printer_message = ""
+            
+            return
 
         progress_data = current_data["progress"]
 
+        # Can't calculate ETA without knowing how long the print has left.
         if "printTimeLeft" not in progress_data:
-            return "-"
+
+            self.eta_string = "-"
+            self.printer_message = ""
+            
+            return
         
         print_time_left = progress_data["printTimeLeft"]
 
         # If the print hasn't begun yet, "printTimeLeft" won't have a type.
         if type(print_time_left) != int:
-            return "-"
+
+            self.eta_string = "-"
+            self.printer_message = ""
+
+            return
 
         # We have all the information we need to calculate the ETA by this point.
 
@@ -226,6 +245,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         print_time_remaining = datetime.timedelta(0, print_time_left)
 
+        # This is the actual ETA. We'll use this to calculate a string based on the user's preferences.
         print_finish_time = current_time + print_time_remaining
 
         eta_string = ""
@@ -243,15 +263,16 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
                 eta_string += " tomorrow"
 
             else:
-                eta_string += format_date(print_finish_time, "EEE d")
+                eta_string += " " + format_date(print_finish_time, "EEE d")
 
         # End of ETA string calculation.
         self.eta_string = eta_string
 
         global enable_message_cycling
-
         global message_mode
 
+        # If message cycling is enabled, check that the mode isn't zero, as this represents the ETA string,
+        # and we can re-use the ETA string from above instead of calculating a new one.
         if enable_message_cycling and message_mode != 0:
 
             new_printer_message = ""
