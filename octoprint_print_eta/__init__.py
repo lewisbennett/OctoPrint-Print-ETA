@@ -269,7 +269,20 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             # Progress percentage message.
             elif self.message_mode == 3:
                 
-                completion = progress_data["completion"]
+                completion = None
+
+                print_time_elapsed = progress_data["printTime"]
+
+                # If we were able to get the time elapsed successfully, calculate a more accurate progress than the 'completion' value.
+                # This allows the plugin to show a more accurate percentage if plugins such as PrintTimeGenius are present.
+                # Total print duration = print time elapsed + print time remaining
+                # Percentage completion = (print time elapsed / total print duration) * 100
+                if type(print_time_elapsed) == int:
+                    completion = (print_time_elapsed / (print_time_elapsed + print_time_left)) * 100.0
+
+                # Use the system provided completion as a fallback.
+                else:
+                    completion = progress_data["completion"]
 
                 if type(completion) == float:
 
