@@ -67,6 +67,9 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             # Whether to send the ETA to the printer via an M117 command.
             show_eta_on_printer = True,
 
+            # Whether to update the progress bar on the printer via an M73 command.
+            show_progress_on_printer = True,
+
             # Whether to remove colons from ETA strings (required for some printer firmwares).
             remove_colons = False,
 
@@ -118,6 +121,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # Get settings.
         self.setting_remove_colons = self._settings.get(["remove_colons"])
         self.setting_show_eta_on_printer = self._settings.get(["show_eta_on_printer"])
+        self.setting_show_progress_on_printer = self._settings.get(["show_progress_on_printer"])
         self.setting_use_twenty_four_hour_view = self._settings.get(["use_twenty_four_hour_view"])
         self.setting_enable_message_cycling = self._settings.get(["enable_message_cycling"])
         self.setting_message_cycle_eta_message = self._settings.get(["message_cycle_eta_message"])
@@ -227,7 +231,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # This is the actual ETA. We'll use this to calculate a string based on the user's preferences.
         print_finish_time = current_time + print_time_remaining
 
-        eta_string = ""
+        eta_string = None
 
         if self.setting_use_twenty_four_hour_view:
             eta_string = format_time(print_finish_time, "HH:mm:ss")
@@ -248,6 +252,27 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # End of ETA string calculation.
         self.eta_string = eta_string
 
+        # Begin printer message calculation.
+
+        completion = None
+
+        print_time_elapsed = progress_data["printTime"]
+
+        # If we were able to get the time elapsed successfully, calculate a more accurate progress than the 'completion' value.
+        # This allows the plugin to show a more accurate percentage if plugins such as PrintTimeGenius are present.
+        # Total print duration = print time elapsed + print time remaining
+        # Percentage completion = (print time elapsed / total print duration) * 100
+        if type(print_time_elapsed) == int:
+            completion = (print_time_elapsed / (print_time_elapsed + print_time_left)) * 100.0
+
+        # Use the system provided completion as a fallback.
+        else:
+            completion = progress_data["completion"]
+
+        # Send the progress to the printer, if enabled.
+        if type(completion) == float and self.setting_show_progress_on_printer:
+            self._printer.commands("M73 P{}".format(int(completion)))
+
         # If message cycling is enabled, check that the mode isn't zero, as this represents the ETA string,
         # and we can re-use the ETA string from above instead of calculating a new one.
         if self.setting_enable_message_cycling and self.message_mode != 0:
@@ -256,8 +281,6 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
             # Time elapsed message.
             if self.message_mode == 1:
-
-                print_time_elapsed = progress_data["printTime"]
 
                 if type(print_time_elapsed) == int:
                     new_printer_message = "Elapsed: " + self.get_time_string(datetime.timedelta(0, print_time_elapsed))
@@ -269,21 +292,6 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             # Progress percentage message.
             elif self.message_mode == 3:
                 
-                completion = None
-
-                print_time_elapsed = progress_data["printTime"]
-
-                # If we were able to get the time elapsed successfully, calculate a more accurate progress than the 'completion' value.
-                # This allows the plugin to show a more accurate percentage if plugins such as PrintTimeGenius are present.
-                # Total print duration = print time elapsed + print time remaining
-                # Percentage completion = (print time elapsed / total print duration) * 100
-                if type(print_time_elapsed) == int:
-                    completion = (print_time_elapsed / (print_time_elapsed + print_time_left)) * 100.0
-
-                # Use the system provided completion as a fallback.
-                else:
-                    completion = progress_data["completion"]
-
                 if type(completion) == float:
 
                     self.logger.debug("Print completion: " + str(completion))

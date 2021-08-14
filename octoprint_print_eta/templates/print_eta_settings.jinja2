@@ -6,6 +6,9 @@
     <label class="checkbox">
         <input type="checkbox" data-bind="checked: settings.plugins.print_eta.show_eta_on_printer">{{ _('Show the ETA on the printer\'s screen (uses M117).') }}
     </label>
+    <label class="checkbox">
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.show_progress_on_printer">{{ _('Show print progress on the printer\'s screen (uses M73).') }}
+    </label>
 
     <h3>{{ _('Formatting') }}</h3>
     <label class="checkbox">
