@@ -4,10 +4,7 @@
         <input type="checkbox" data-bind="checked: settings.plugins.print_eta.use_twenty_four_hour_view">{{ _('Format time in 24 hour view (13:00) instead of 12 hour view (1:00 PM).') }}
     </label>
     <label class="checkbox">
-        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.show_eta_on_printer">{{ _('Show the ETA on the printer\'s screen (uses M117).') }}
-    </label>
-    <label class="checkbox">
-        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.show_progress_on_printer">{{ _('Show print progress on the printer\'s screen (uses M73).') }}
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.show_progress_on_printer">{{ _('Show the print progress on the printer\'s screen (uses M73).') }}
     </label>
 
     <h3>{{ _('Formatting') }}</h3>
@@ -15,26 +12,26 @@
         <input type="checkbox" data-bind="checked: settings.plugins.print_eta.remove_colons">{{ _('Remove colons (:) from the ETA (required for some printer firmwares).') }}
     </label>
 
-    <h3>{{ _('Message Cycling') }}</h3>
+    <h3>{{ _('Printer Messages') }}</h3>
     <label class="checkbox">
-        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.enable_message_cycling">{{ _('Enable message cycling (printer\'s screen only, if enabled).') }}
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.enable_printer_messages">{{ _('Enable printer messages (uses M117).') }}
     </label>
     <label class="checkbox">
-        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.message_cycle_eta_message">{{ _('Include ETA message in message cycle (e.g. ETA: 13:37 tomorrow).') }}
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.show_eta_printer_message">{{ _('Show the print\'s ETA on the printer\'s screen.') }}
     </label>
     <label class="checkbox">
-        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.message_cycle_time_elapsed_message">{{ _('Include time elapsed message in message cycle (e.g. Time elapsed: 2 hours, 15 minutes).') }}
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.show_time_elapsed_printer_message">{{ _('Show how long the print has been running on the printer\'s screen.') }}
     </label>
     <label class="checkbox">
-        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.message_cycle_time_remaining_message">{{ _('Include time remaining message in message cycle (e.g. Time remaining: 13 hours, 37 minutes).') }}
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.show_time_remaining_printer_message">{{ _('Show how long the print has left on the printer\'s screen.') }}
     </label>
     <label class="checkbox">
-        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.message_cycle_progress_percentage">{{ _('Include the progress percentage message in message cycle (e.g. 42 complete).') }}
+        <input type="checkbox" data-bind="checked: settings.plugins.print_eta.show_progress_printer_message">{{ _('Show the print progress on the printer\'s screen.') }}
     </label>
-    <div class="control-group" title="Message cycle interval">
-        <label class="control-label">Message cycle interval</label>
+    <div class="control-group" title="Message interval">
+        <label class="control-label">Message interval (minutes)</label>
         <div class="controls">
-            <input type="number" min="1" max="10" step="1" data-bind="value: settings.plugins.print_eta.message_cycle_interval_minutes">
+            <input type="number" min="1" max="10" step="1" data-bind="value: settings.plugins.print_eta.printer_message_interval">
         </div>
     </div>
 </form>

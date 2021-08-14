@@ -43,7 +43,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # 1: Time elapsed message.
         # 2: Time remaining message.
         # 3: Progress percentage message.
-        self.message_mode = 0
+        self.printer_message_mode = 0
 
     # Defines the static assets the plugin offers.
     def get_assets(self):
@@ -64,32 +64,29 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             # Whether to show time in 24 hour view (13:00), or 12 hour view (1:00 PM).
             use_twenty_four_hour_view = True,
 
-            # Whether to send the ETA to the printer via an M117 command.
-            show_eta_on_printer = True,
-
             # Whether to update the progress bar on the printer via an M73 command.
             show_progress_on_printer = True,
 
             # Whether to remove colons from ETA strings (required for some printer firmwares).
             remove_colons = False,
 
-            # Whether to enable message cycling on the printer's screen, if enabled.
-            enable_message_cycling = True,
+            # Whether to enable messages on the printer's screen.
+            enable_printer_messages = True,
 
-            # Whether to include the ETA message within the message cycle, if enabled.
-            message_cycle_eta_message = True,
+            # Whether to show the print's ETA on the printer's screen.
+            show_eta_printer_message = True,
 
-            # Whether to include the time elapsed message within the message cycle, if enabled.
-            message_cycle_time_elapsed_message = True,
+            # Whether to show how long the print has been running for on the printer's screen.
+            show_time_elapsed_printer_message = True,
 
-            # Whether to include the time remaining message within the message cycle, if enabled.
-            message_cycle_time_remaining_message = True,
+            # Whether to show how long the print has left on the printer's screen.
+            show_time_remaining_printer_message = True,
 
-            # Whether to include the progress percentage message within the message cycle, if enabled.
-            message_cycle_progress_percentage = True,
+            # Whether to show the print's progress on the printer's screen.
+            show_progress_printer_message = False,
 
-            # The interval between messages included in the message cycle.
-            message_cycle_interval_minutes = 1
+            # The interval between printer messages.
+            printer_message_interval = 1
         )
 
     # Allows configuration of injected navbar, sidebar, tab and settings templates.
@@ -118,24 +115,27 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         self.logger.debug("on_after_startup called.")
 
-        # Get settings.
-        self.setting_remove_colons = self._settings.get(["remove_colons"])
-        self.setting_show_eta_on_printer = self._settings.get(["show_eta_on_printer"])
+        # Get general settings.
         self.setting_show_progress_on_printer = self._settings.get(["show_progress_on_printer"])
         self.setting_use_twenty_four_hour_view = self._settings.get(["use_twenty_four_hour_view"])
-        self.setting_enable_message_cycling = self._settings.get(["enable_message_cycling"])
-        self.setting_message_cycle_eta_message = self._settings.get(["message_cycle_eta_message"])
-        self.setting_message_cycle_time_elapsed_message = self._settings.get(["message_cycle_time_elapsed_message"])
-        self.setting_message_cycle_time_remaining_message = self._settings.get(["message_cycle_time_remaining_message"])
-        self.setting_message_cycle_progress_percentage = self._settings.get(["message_cycle_progress_percentage"])
-        self.setting_message_cycle_interval_minutes = self._settings.get(["message_cycle_interval_minutes"])
+
+        # Get formatting settings.
+        self.setting_remove_colons = self._settings.get(["remove_colons"])
+
+        # Get printer message settings.
+        self.setting_enable_printer_messages = self._settings.get(["enable_printer_messages"])
+        self.setting_show_eta_printer_message = self._settings.get(["show_eta_printer_message"])
+        self.setting_show_time_elapsed_printer_message = self._settings.get(["show_time_elapsed_printer_message"])
+        self.setting_show_time_remaining_printer_message = self._settings.get(["show_time_remaining_printer_message"])
+        self.setting_show_progress_printer_message = self._settings.get(["show_progress_printer_message"])
+        self.setting_printer_message_interval = self._settings.get(["printer_message_interval"])
 
         # If the ETA message is disabled in the cycle, calculate the correct starting mode.
-        if not self.setting_message_cycle_eta_message:
-            self.message_mode = self.get_next_message_mode()
+        if not self.setting_show_eta_printer_message:
+            self.printer_message_mode = self.get_next_printer_message_mode()
 
         # Set up a timer for message cycling, if enabled.
-        self.timer = RepeatedTimer(self.setting_message_cycle_interval_minutes * 60, PrintETAPlugin.on_timer_elapsed, args=[self])
+        self.timer = RepeatedTimer(self.setting_printer_message_interval * 60, PrintETAPlugin.on_timer_elapsed, args=[self])
 
         self.has_started_up = True
 
@@ -164,7 +164,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             # If not a timer cancelling event, check if the timer should be started instead.
             else:
 
-                if self.setting_enable_message_cycling and not self.is_timer_active:
+                if self.setting_enable_printer_messages and not self.is_timer_active:
 
                     self.timer.start()
                     self.is_timer_active = True
@@ -275,22 +275,22 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         # If message cycling is enabled, check that the mode isn't zero, as this represents the ETA string,
         # and we can re-use the ETA string from above instead of calculating a new one.
-        if self.setting_enable_message_cycling and self.message_mode != 0:
+        if self.setting_enable_printer_messages and self.printer_message_mode != 0:
 
             new_printer_message = ""
 
             # Time elapsed message.
-            if self.message_mode == 1:
+            if self.printer_message_mode == 1:
 
                 if type(print_time_elapsed) == int:
                     new_printer_message = "Elapsed: " + self.get_time_string(datetime.timedelta(0, print_time_elapsed))
 
             # Time remaining message.
-            elif self.message_mode == 2:
+            elif self.printer_message_mode == 2:
                 new_printer_message = "Remaining: " + self.get_time_string(print_time_remaining)
 
             # Progress percentage message.
-            elif self.message_mode == 3:
+            elif self.printer_message_mode == 3:
                 
                 if type(completion) == float:
 
@@ -304,22 +304,22 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             self.printer_message = "ETA: {}".format(eta_string)
 
     # Gets the next message mode.
-    def get_next_message_mode(self):
+    def get_next_printer_message_mode(self):
 
-        self.logger.debug("get_next_message_mode called.")
+        self.logger.debug("get_next_printer_message_mode called.")
 
         messages = []
 
-        if self.setting_message_cycle_eta_message:
+        if self.setting_show_eta_printer_message:
             messages.append(0)
 
-        if self.setting_message_cycle_time_elapsed_message:
+        if self.setting_show_time_elapsed_printer_message:
             messages.append(1)
 
-        if self.setting_message_cycle_time_remaining_message:
+        if self.setting_show_time_remaining_printer_message:
             messages.append(2)
 
-        if self.setting_message_cycle_progress_percentage:
+        if self.setting_show_progress_printer_message:
             messages.append(3)
 
         # Return -1 if all messages are disabled.
@@ -329,19 +329,19 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # We want to find the next message mode. This will either be the first item in the collection,
         # or the next item with a greater value. If a greater value is found, use that and break the
         # loop. Otherwise, the loop will finish and the initial value will be used, restarting the cycle.
-        new_message_mode = messages[0]
+        new_printer_message_mode = messages[0]
 
         for message in messages:
 
-            if message > self.message_mode:
+            if message > self.printer_message_mode:
 
-                new_message_mode = message
+                new_printer_message_mode = message
 
                 break
 
-        self.logger.debug("New message mode: " + str(new_message_mode))
+        self.logger.debug("New message mode: " + str(new_printer_message_mode))
 
-        return new_message_mode
+        return new_printer_message_mode
 
     # Gets a datetime object as a human-readable string (e.g. 1 day, 2 hours, 3 minutes)
     # datetime (timedelta) - The time delta to calculate the string for.
@@ -379,10 +379,10 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         self.logger.debug("on_timer_elapsed called.")
 
-        # Make sure that message cycling is enabled before moving to the next mode.
-        if self.setting_enable_message_cycling:
+        # Make sure that printer messages are enabled before moving to the next mode.
+        if self.setting_enable_printer_messages:
 
-            self.message_mode = self.get_next_message_mode()
+            self.printer_message_mode = self.get_next_printer_message_mode()
 
             self.refresh_messages()
 
@@ -405,7 +405,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             self._plugin_manager.send_plugin_message(self._identifier, dict(eta_string = self.eta_string))
 
         # Send M117 command to printer, if setting is enabled.
-        if self.setting_show_eta_on_printer:
+        if self.setting_enable_printer_messages:
 
             if not str.isspace(self.printer_message) and self.printer_message != self.previous_printer_message:
 
