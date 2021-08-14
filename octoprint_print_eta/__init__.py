@@ -1,7 +1,9 @@
 from __future__ import absolute_import, unicode_literals
 import logging
-from octoprint.util import RepeatedTimer
 from babel.dates import format_date, format_time
+
+from octoprint.events import Events
+from octoprint.util import RepeatedTimer
 
 import octoprint.plugin
 import datetime
@@ -166,7 +168,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         if event.startswith("Print"):
 
             # Events to cancel the timer.
-            if event in ["PrintDone", "PrintCancelled", "PrintFailed", "PrintPaused"]:
+            if event in [Events.PRINT_DONE, Events.PRINT_CANCELLED, Events.PRINT_FAILED, Events.PRINT_PAUSED]:
 
                 self.timer.cancel()
                 self.is_timer_active = False
@@ -182,7 +184,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
                     self.is_timer_active = True
 
         # Only allow these non-print based events to trigger a refresh of the messages.
-        elif event not in ["ClientOpened", "FileRemoved"]:
+        elif event not in [Events.CLIENT_OPENED, Events.FILE_REMOVED]:
             return
 
         self.refresh_messages()
