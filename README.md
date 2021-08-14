@@ -17,10 +17,6 @@ https://github.com/lewisbennett/OctoPrint-Print-ETA/archive/master.zip
 
 Enable/disable 24 hour time view. This setting affects the way that time is displayed both within OctoPrint, and on your printer (if enabled). This setting is enabled by default.
 
-### Enable fancy text
-
-Enable/disable "fancy" text. For example: "ETA: 18:00 tomorrow" (enabled), "ETA: 18:00 Sun 2" (disabled). This setting is enabled by default.
-
 ### Show the ETA on the printer's screen
 
 If enabled, the plugin will send the ETA displayed within OctoPrint to your printer via an `M117` gcode command. This setting is enabled by default.

@@ -58,9 +58,6 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             # Whether to show time in 24 hour view (13:00), or 12 hour view (1:00 PM).
             use_twenty_four_hour_view = True,
 
-            # Whether to use "fancy" text (e.g. Tomorrow).
-            use_fancy_text = True,
-
             # Whether to send the ETA to the printer via an M117 command.
             show_eta_on_printer = True,
 
@@ -118,9 +115,6 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         global show_eta_on_printer
         show_eta_on_printer = self._settings.get(["show_eta_on_printer"])
-
-        global use_fancy_text
-        use_fancy_text = self._settings.get(["use_fancy_text"])
 
         global use_twenty_four_hour_view
         use_twenty_four_hour_view = self._settings.get(["use_twenty_four_hour_view"])
@@ -242,7 +236,6 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         # We have all the information we need to calculate the ETA by this point.
 
-        global use_fancy_text
         global use_twenty_four_hour_view
 
         current_time = datetime.datetime.today()
@@ -263,7 +256,8 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # Append the ETA string with the date, if the print is not due to finish today.
         if (print_finish_time.day > current_time.day):
 
-            if print_finish_time.day == current_time.day + 1 and use_fancy_text:
+            # Check if the print is due to finish tomorrow
+            if print_finish_time.date == datetime.date.today() + datetime.timedelta(days=1):
                 eta_string += " tomorrow"
 
             else:
