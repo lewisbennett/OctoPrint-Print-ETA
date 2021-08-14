@@ -20,26 +20,30 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         self.logger = logging.getLogger("octoprint.plugins.print_eta")
 
+        # The ETA string passed to the OctoPrint UI.
         self.eta_string = "-"
+
+        # The message string passed to the printer, if enabled.
         self.printer_message = ""
+
+        # Whether the plugin has properly started up. Prevents issues as a result of trying to calculate messages too early.
         self.has_started_up = False
+
+        # Whether the message cycling timer is currently active.
         self.is_timer_active = False
 
         # Used to compare ETA strings before pushing them to the UI.
-        global previous_eta_string
-        previous_eta_string = ""
+        self.previous_eta_string = ""
 
         # Used to compare printer messages before pushing them to the printer.
-        global previous_printer_message
-        previous_printer_message = ""
+        self.previous_printer_message = ""
 
         # Used to determine the message that should be calculated.
         # 0: ETA message.
         # 1: Time elapsed message.
         # 2: Time remaining message.
         # 3: Progress percentage message.
-        global message_mode
-        message_mode = 0
+        self.message_mode = 0
 
     # Defines the static assets the plugin offers.
     def get_assets(self):
@@ -112,42 +116,22 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         self.logger.debug("on_after_startup called.")
 
         # Get settings.
-        global remove_colons
-        remove_colons = self._settings.get(["remove_colons"])
-
-        global show_eta_on_printer
-        show_eta_on_printer = self._settings.get(["show_eta_on_printer"])
-
-        global use_twenty_four_hour_view
-        use_twenty_four_hour_view = self._settings.get(["use_twenty_four_hour_view"])
-
-        global enable_message_cycling
-        enable_message_cycling = self._settings.get(["enable_message_cycling"])
-
-        global message_cycle_eta_message
-        message_cycle_eta_message = self._settings.get(["message_cycle_eta_message"])
-
-        global message_cycle_time_elapsed_message
-        message_cycle_time_elapsed_message = self._settings.get(["message_cycle_time_elapsed_message"])
-
-        global message_cycle_time_remaining_message
-        message_cycle_time_remaining_message = self._settings.get(["message_cycle_time_remaining_message"])
-
-        global message_cycle_progress_percentage
-        message_cycle_progress_percentage = self._settings.get(["message_cycle_progress_percentage"])
-
-        global message_cycle_interval_minutes
-        message_cycle_interval_minutes = self._settings.get(["message_cycle_interval_minutes"])
-
-        # Get the initial message mode.
-        global message_mode
+        self.setting_remove_colons = self._settings.get(["remove_colons"])
+        self.setting_show_eta_on_printer = self._settings.get(["show_eta_on_printer"])
+        self.setting_use_twenty_four_hour_view = self._settings.get(["use_twenty_four_hour_view"])
+        self.setting_enable_message_cycling = self._settings.get(["enable_message_cycling"])
+        self.setting_message_cycle_eta_message = self._settings.get(["message_cycle_eta_message"])
+        self.setting_message_cycle_time_elapsed_message = self._settings.get(["message_cycle_time_elapsed_message"])
+        self.setting_message_cycle_time_remaining_message = self._settings.get(["message_cycle_time_remaining_message"])
+        self.setting_message_cycle_progress_percentage = self._settings.get(["message_cycle_progress_percentage"])
+        self.setting_message_cycle_interval_minutes = self._settings.get(["message_cycle_interval_minutes"])
 
         # If the ETA message is disabled in the cycle, calculate the correct starting mode.
-        if not message_cycle_eta_message:
-            message_mode = self.get_next_message_mode()
+        if not self.setting_message_cycle_eta_message:
+            self.message_mode = self.get_next_message_mode()
 
         # Set up a timer for message cycling, if enabled.
-        self.timer = RepeatedTimer(message_cycle_interval_minutes * 60, PrintETAPlugin.on_timer_elapsed, args=[self])
+        self.timer = RepeatedTimer(self.setting_message_cycle_interval_minutes * 60, PrintETAPlugin.on_timer_elapsed, args=[self])
 
         self.has_started_up = True
 
@@ -176,9 +160,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             # If not a timer cancelling event, check if the timer should be started instead.
             else:
 
-                global enable_message_cycling
-
-                if enable_message_cycling and not self.is_timer_active:
+                if self.setting_enable_message_cycling and not self.is_timer_active:
 
                     self.timer.start()
                     self.is_timer_active = True
@@ -238,8 +220,6 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         # We have all the information we need to calculate the ETA by this point.
 
-        global use_twenty_four_hour_view
-
         current_time = datetime.datetime.today()
 
         print_time_remaining = datetime.timedelta(0, print_time_left)
@@ -249,7 +229,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         eta_string = ""
 
-        if use_twenty_four_hour_view:
+        if self.setting_use_twenty_four_hour_view:
             eta_string = format_time(print_finish_time, "HH:mm:ss")
 
         else:
@@ -268,17 +248,14 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # End of ETA string calculation.
         self.eta_string = eta_string
 
-        global enable_message_cycling
-        global message_mode
-
         # If message cycling is enabled, check that the mode isn't zero, as this represents the ETA string,
         # and we can re-use the ETA string from above instead of calculating a new one.
-        if enable_message_cycling and message_mode != 0:
+        if self.setting_enable_message_cycling and self.message_mode != 0:
 
             new_printer_message = ""
 
             # Time elapsed message.
-            if message_mode == 1:
+            if self.message_mode == 1:
 
                 print_time_elapsed = progress_data["printTime"]
 
@@ -286,11 +263,11 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
                     new_printer_message = "Elapsed: " + self.get_time_string(datetime.timedelta(0, print_time_elapsed))
 
             # Time remaining message.
-            elif message_mode == 2:
+            elif self.message_mode == 2:
                 new_printer_message = "Remaining: " + self.get_time_string(print_time_remaining)
 
             # Progress percentage message.
-            elif message_mode == 3:
+            elif self.message_mode == 3:
                 
                 completion = progress_data["completion"]
 
@@ -312,24 +289,16 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         messages = []
 
-        global message_cycle_eta_message
-
-        if message_cycle_eta_message:
+        if self.setting_message_cycle_eta_message:
             messages.append(0)
 
-        global message_cycle_time_elapsed_message
-
-        if message_cycle_time_elapsed_message:
+        if self.setting_message_cycle_time_elapsed_message:
             messages.append(1)
 
-        global message_cycle_time_remaining_message
-
-        if message_cycle_time_remaining_message:
+        if self.setting_message_cycle_time_remaining_message:
             messages.append(2)
 
-        global message_cycle_progress_percentage
-
-        if message_cycle_progress_percentage:
+        if self.setting_message_cycle_progress_percentage:
             messages.append(3)
 
         # Return -1 if all messages are disabled.
@@ -341,11 +310,9 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # loop. Otherwise, the loop will finish and the initial value will be used, restarting the cycle.
         new_message_mode = messages[0]
 
-        global message_mode
-
         for message in messages:
 
-            if message > message_mode:
+            if message > self.message_mode:
 
                 new_message_mode = message
 
@@ -391,14 +358,10 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         self.logger.debug("on_timer_elapsed called.")
 
-        global enable_message_cycling
-
         # Make sure that message cycling is enabled before moving to the next mode.
-        if enable_message_cycling:
+        if self.setting_enable_message_cycling:
 
-            global message_mode
-
-            message_mode = self.get_next_message_mode()
+            self.message_mode = self.get_next_message_mode()
 
             self.refresh_messages()
 
@@ -412,33 +375,25 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         self.logger.debug("ETA string: " + self.eta_string)
         self.logger.debug("Printer message: " + self.printer_message)
 
-        global previous_eta_string
-
         # Compare the new and previous ETA string before pushing any updates to the UI.
-        if self.eta_string != previous_eta_string:
+        if self.eta_string != self.previous_eta_string:
 
-            previous_eta_string = self.eta_string
+            self.previous_eta_string = self.eta_string
 
             # Notify listeners of new ETA string value.
             self._plugin_manager.send_plugin_message(self._identifier, dict(eta_string = self.eta_string))
 
-        global show_eta_on_printer
-
         # Send M117 command to printer, if setting is enabled.
-        if show_eta_on_printer:
+        if self.setting_show_eta_on_printer:
 
-            global previous_printer_message
+            if not str.isspace(self.printer_message) and self.printer_message != self.previous_printer_message:
 
-            if not str.isspace(self.printer_message) and self.printer_message != previous_printer_message:
-
-                previous_printer_message = self.printer_message
+                self.previous_printer_message = self.printer_message
 
                 message = self.printer_message
 
-                global remove_colons
-
                 # Remove colons, if enabled. 
-                if remove_colons:
+                if self.setting_remove_colons:
                     message = message.replace(":", "")
 
                 self._printer.commands("M117 {}".format(message))
