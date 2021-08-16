@@ -243,7 +243,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         if (print_finish_time.day > current_time.day):
 
             # Check if the print is due to finish tomorrow
-            if print_finish_time.date == datetime.date.today() + datetime.timedelta(days=1):
+            if print_finish_time.date() == current_time.date() + datetime.timedelta(days=1):
                 eta_string += " tomorrow"
 
             else:
