@@ -349,30 +349,18 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         
         self.logger.debug("get_time_string called.")
 
-        message = []
-
-        # Add days, if needed.
-        if timedelta.days > 0:
-            message.append("{}d".format(timedelta.days))
-
         hours = timedelta.seconds // 3600
-
-        # Add hours, if needed.
-        if hours > 0:
-            message.append("{}h".format(hours))
-
         minutes = (timedelta.seconds // 60) % 60
-
-        # Add minutes, if needed.
-        if minutes > 0:
-            message.append("{}m".format(minutes))
-
         seconds = (timedelta.seconds // 3600) % 60
 
-        if seconds > 0:
-            message.append("{}s".format(seconds))
+        # Format the hours, minutes and seconds to have prefixing zeroes when only single digits.
+        message = f'{hours:02d}' + ":" + f'{minutes:02d}' + ":" + f'{seconds:02d}'
 
-        return ", ".join(message)
+        # Insert the number of days left if greater than zero.
+        if timedelta.days > 0:
+            message = "{}d".format(timedelta.days) + " " + message
+
+        return message
 
     # Event handler for timer to handle message mode switching.
     def on_timer_elapsed(self):
