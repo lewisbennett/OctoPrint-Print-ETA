@@ -29,9 +29,6 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # Whether the plugin has properly started up. Prevents issues as a result of trying to calculate messages too early.
         self.has_started_up = False
 
-        # Whether the message cycling timer is currently active.
-        self.is_timer_active = False
-
         # Used to compare ETA strings before pushing them to the UI.
         self.previous_eta_string = ""
 
@@ -159,15 +156,17 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             if event in [Events.PRINT_DONE, Events.PRINT_CANCELLED, Events.PRINT_FAILED, Events.PRINT_PAUSED]:
 
                 self.timer.cancel()
-                self.is_timer_active = False
+
+                self.timer = None
 
             # If not a timer cancelling event, check if the timer should be started instead.
             else:
 
-                if self.setting_enable_printer_messages and not self.is_timer_active:
+                if self.setting_enable_printer_messages and type(self.timer) != RepeatedTimer:
+
+                    self.timer = RepeatedTimer(self.setting_printer_message_interval * 60, PrintETAPlugin.on_timer_elapsed, args=[self])
 
                     self.timer.start()
-                    self.is_timer_active = True
 
         # Only allow these non-print based events to trigger a refresh of the messages.
         elif event not in [Events.CLIENT_OPENED, Events.FILE_REMOVED]:
