@@ -35,6 +35,9 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # Used to compare printer messages before pushing them to the printer.
         self.previous_printer_message = ""
 
+        # Will be used for the timer for printer messages.
+        self.timer = None
+
         # Used to determine the message that should be calculated.
         # 0: ETA message.
         # 1: Time elapsed message.
@@ -130,9 +133,6 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         # If the ETA message is disabled in the cycle, calculate the correct starting mode.
         if not self.setting_show_eta_printer_message:
             self.printer_message_mode = self.get_next_printer_message_mode()
-
-        # Set up a timer for message cycling, if enabled.
-        self.timer = RepeatedTimer(self.setting_printer_message_interval * 60, PrintETAPlugin.on_timer_elapsed, args=[self])
 
         self.has_started_up = True
 
