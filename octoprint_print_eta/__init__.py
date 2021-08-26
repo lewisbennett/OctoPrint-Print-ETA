@@ -271,7 +271,10 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
         # Send the progress to the printer, if enabled.
         if type(completion) == float and self.setting_show_progress_on_printer:
+
             self._printer.commands("M73 P{}".format(int(completion)))
+
+            self.logger.debug("Sent M73")
 
         # If message cycling is enabled, check that the mode isn't zero, as this represents the ETA string,
         # and we can re-use the ETA string from above instead of calculating a new one.
@@ -393,7 +396,11 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             self._plugin_manager.send_plugin_message(self._identifier, dict(eta_string = self.eta_string))
 
         # Send M117 command to printer, if setting is enabled.
-        if self.setting_enable_printer_messages:
+        # Only send M117 if the printer is actually printing. We may reach this part before the printer has
+        # actually started printing (for example, when it is probing the bed for auto bed levelling) and some
+        # printers show messages on the screen depending on the print's start gcode. We don't want to interfere
+        # with this, so only send M117s if the print is actually in progress.
+        if self._printer.get_state_id() == "PRINTING" and self.setting_enable_printer_messages:
 
             if not str.isspace(self.printer_message) and self.printer_message != self.previous_printer_message:
 
@@ -403,9 +410,11 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
                 # Remove colons, if enabled. 
                 if self.setting_remove_colons:
-                    message = message.replace(":", "")
+                    message = message.replace(":", " ")
 
                 self._printer.commands("M117 {}".format(message))
+
+                self.logger.debug("Sent M117")
 
 __plugin_name__ = "Print ETA"
 __plugin_pythoncompat__ = ">=2.7,<4"
