@@ -86,7 +86,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
             show_progress_printer_message = False,
 
             # The interval between printer messages.
-            printer_message_interval = 1
+            printer_message_interval = 10
         )
 
     # Allows configuration of injected navbar, sidebar, tab and settings templates.
@@ -130,6 +130,11 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         self.setting_show_progress_printer_message = self._settings.get(["show_progress_printer_message"])
         self.setting_printer_message_interval = self._settings.get(["printer_message_interval"])
 
+        # Previously, the interval was set in minutes however, if you're looking for information at a glance,
+        # this may be too long a period. This setting was changed on 20/09/2021.
+        if self.setting_printer_message_interval < 10:
+            self.setting_printer_message_interval = 10;
+
         # If the ETA message is disabled in the cycle, calculate the correct starting mode.
         if not self.setting_show_eta_printer_message:
             self.printer_message_mode = self.get_next_printer_message_mode()
@@ -164,7 +169,7 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
                 if self.setting_enable_printer_messages and type(self.timer) != RepeatedTimer:
 
-                    self.timer = RepeatedTimer(self.setting_printer_message_interval * 60, PrintETAPlugin.on_timer_elapsed, args=[self])
+                    self.timer = RepeatedTimer(self.setting_printer_message_interval, PrintETAPlugin.on_timer_elapsed, args=[self])
 
                     self.timer.start()
 
