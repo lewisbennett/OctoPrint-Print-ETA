@@ -151,31 +151,36 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
         if not self.has_started_up:
             return
 
-        # Only recalculate the ETA if the event is a print related event.
-        # ClientOpened - event when OctoPrint starts being viewed (allows us to calculate the ETA quickly after refreshing OctoPrint, or opening from another device mid-print).
-        # FileRemoved - event when a file is removed from OctoPrint's storage (allows the ETA to be cleared if the active print file is removed).
-        # Print* - react to all print related events.
-        if event.startswith("Print"):
+        # Show the latest ETA message when the webpage loads.
+        if event == Events.CLIENT_OPENED:
 
-            # Events to cancel the timer.
-            if event in [Events.PRINT_DONE, Events.PRINT_CANCELLED, Events.PRINT_FAILED, Events.PRINT_PAUSED]:
+            self.dispatch_eta_message()
+
+            return
+
+        if self._printer.is_printing():
+
+            # Event filter when printing.
+            if not event.startswith("Print"):
+                return
+
+            if self.setting_enable_printer_messages and type(self.timer) != RepeatedTimer:
+
+                self.timer = RepeatedTimer(self.setting_printer_message_interval, PrintETAPlugin.on_timer_elapsed, args=[self])
+
+                self.timer.start()
+
+        else:
+
+            # Event filter while printer is idle.
+            if not event.startswith("Print") and event not in [Events.FILE_REMOVED]:
+                return
+
+            if type(self.timer) == RepeatedTimer:
 
                 self.timer.cancel()
 
                 self.timer = None
-
-            # If not a timer cancelling event, check if the timer should be started instead.
-            else:
-
-                if self.setting_enable_printer_messages and type(self.timer) != RepeatedTimer:
-
-                    self.timer = RepeatedTimer(self.setting_printer_message_interval, PrintETAPlugin.on_timer_elapsed, args=[self])
-
-                    self.timer.start()
-
-        # Only allow these non-print based events to trigger a refresh of the messages.
-        elif event not in [Events.CLIENT_OPENED, Events.FILE_REMOVED]:
-            return
 
         self.refresh_messages()
 
@@ -396,29 +401,44 @@ class PrintETAPlugin(octoprint.plugin.AssetPlugin,
 
             self.previous_eta_string = self.eta_string
 
-            # Notify listeners of new ETA string value.
-            self._plugin_manager.send_plugin_message(self._identifier, dict(eta_string = self.eta_string))
+            self.dispatch_eta_message()
 
         # Send M117 command to printer, if setting is enabled.
         # Only send M117 if the printer is actually printing. We may reach this part before the printer has
         # actually started printing (for example, when it is probing the bed for auto bed levelling) and some
         # printers show messages on the screen depending on the print's start gcode. We don't want to interfere
         # with this, so only send M117s if the print is actually in progress.
-        if self._printer.get_state_id() == "PRINTING" and self.setting_enable_printer_messages:
+        if self._printer.is_printing() and self.setting_enable_printer_messages:
 
             if not str.isspace(self.printer_message) and self.printer_message != self.previous_printer_message:
 
                 self.previous_printer_message = self.printer_message
 
-                message = self.printer_message
+                self.dispatch_printer_message()
+                
 
-                # Remove colons, if enabled. 
-                if self.setting_remove_colons:
-                    message = message.replace(":", " ")
+    # Dispatches the currnent ETA message to the UI.
+    def dispatch_eta_message(self):
 
-                self._printer.commands("M117 {}".format(message))
+        self.logger.debug("dispatch_eta_message called.")
 
-                self.logger.debug("Sent M117")
+        # Notify listeners of new ETA string value.
+        self._plugin_manager.send_plugin_message(self._identifier, dict(eta_string = self.eta_string))
+
+    # Dispatches the current printer message to the printer.
+    def dispatch_printer_message(self):
+
+        self.logger.debug("dispatch_printer_message called.")
+
+        message = self.printer_message
+
+        # Remove colons, if enabled. 
+        if self.setting_remove_colons:
+            message = message.replace(":", " ")
+
+        self._printer.commands("M117 {}".format(message))
+
+        self.logger.debug("Sent M117")
 
 __plugin_name__ = "Print ETA"
 __plugin_pythoncompat__ = ">=2.7,<4"
